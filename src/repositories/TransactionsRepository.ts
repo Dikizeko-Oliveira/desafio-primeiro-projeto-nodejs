@@ -6,7 +6,7 @@ interface Balance {
   total: number;
 }
 
-interface CreateTransactionTDO {
+interface CreateTransactionDTO {
   title: string;
   value: number;
   type: 'income' | 'outcome';
@@ -26,32 +26,42 @@ class TransactionsRepository {
     };
   }
 
-  // Retorna todos as transações e o balanço
+  // Retorna todos as transações
   public all(): Transaction[] {
     return this.transactions;
   }
 
   // Faz o balanço total dos income e outcome
   public getBalance(): Balance {
-    this.balance.total = this.balance.income - this.balance.outcome;
+    const { income, outcome } = this.transactions.reduce(
+      (accumulator: Balance, transaction: Transaction) => {
+        switch (transaction.type) {
+          case 'income':
+            accumulator.income += transaction.value;
+            break;
+          case 'outcome':
+            accumulator.outcome += transaction.value;
+            break;
+          default:
+            break;
+        }
 
-    return this.balance;
+        return accumulator;
+      },
+      {
+        income: 0,
+        outcome: 0,
+        total: 0,
+      },
+    );
+    const total = income - outcome;
+
+    return { income, outcome, total };
   }
 
   // Cria uma nova transação
-  public create({ title, value, type }: CreateTransactionTDO): Transaction {
+  public create({ title, value, type }: CreateTransactionDTO): Transaction {
     const transaction = new Transaction({ title, value, type });
-
-    if (type === 'income') {
-      this.balance.income += value;
-    }
-    if (type === 'outcome') {
-      if (this.balance.total >= value) {
-        this.balance.outcome += value;
-      } else {
-        throw Error('Valor Estrapolado');
-      }
-    }
 
     this.transactions.push(transaction);
 

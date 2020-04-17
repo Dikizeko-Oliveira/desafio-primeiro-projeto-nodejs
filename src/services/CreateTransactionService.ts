@@ -1,7 +1,7 @@
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
 
-interface RequestTDO {
+interface RequestDTO {
   title: string;
   value: number;
   type: 'income' | 'outcome';
@@ -14,7 +14,16 @@ class CreateTransactionService {
     this.transactionsRepository = transactionsRepository;
   }
 
-  public execute({ title, value, type }: RequestTDO): Transaction {
+  public execute({ title, value, type }: RequestDTO): Transaction {
+    if (!['income', 'outcome'].includes(type)) {
+      throw new Error('Transaction type is invalid.');
+    }
+
+    const { total } = this.transactionsRepository.getBalance();
+
+    if (type === 'outcome' && total < value) {
+      throw new Error('Oporation failed, the balance is not enough');
+    }
     const transation = this.transactionsRepository.create({
       title,
       value,
